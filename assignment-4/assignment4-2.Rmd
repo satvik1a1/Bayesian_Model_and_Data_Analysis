@@ -1,0 +1,78 @@
+---
+output:
+  html_document: default
+  pdf_document: default
+---
+```{r}
+library(brms)
+# Load the data
+data <- read.csv("crossings.csv")
+# Display the first few rows of the data to understand its structure
+head(data)
+```
+```{r}
+# Define the formula for Model M1
+formula_m1 <- bf(nCross ~ s.length)
+# Define priors
+priors_m1 <- c(
+prior(normal(0.15, 0.1), class = "Intercept"),
+prior(normal(0, 0.15), class = "b")
+)
+# Fit Model M1
+fit_m1 <- brm(formula_m1, data = data, family = poisson(link = "log"), 
+               prior = priors_m1, iter = 2000, warmup = 1000, chains = 4, 
+               cores = 4, seed = 123)
+
+## Compiling Stan program
+```
+```{r}
+# Display the summary of Model M1
+summary(fit_m1)
+```
+```{r}
+# Define the formula for Model M2
+formula_m2 <- bf(nCross ~ s.length * Language)
+# Define priors
+priors_m2 <- c(
+prior(normal(0.15, 0.1), class = "Intercept"),
+prior(normal(0, 0.15), class = "b"),
+prior(normal(0, 0.15), class = "b", coef = "LanguageGerman"),
+prior(normal(0, 0.15), class = "b", coef = "s.length:LanguageGerman")
+)
+# Fit Model M2
+fit_m2 <- brm(formula_m2, data = data, family = poisson(link = "log"), prior = priors_m2, iter = 2000, 
+               warmup = 1000, chains = 4, cores = 4, seed = 123)
+```
+
+```{r}
+# Display the summary of Model M2
+summary(fit_m2)
+```
+```{r}
+# Load the bayesplot package for plotting
+library(bayesplot)
+# Convert brmsfit objects to mcmc objects for plotting
+mfit_m1 <- as.mcmc(fit_m1)
+```
+```{r}
+mfit_m2 <- as.mcmc(fit_m2)
+```
+
+```{r}
+# Plot trace plots for Model M1
+mcmc_trace(mfit_m1, pars = c("b_Intercept", "b_s.length"))
+```
+```{r}
+# Plot trace plots for Model M2
+mcmc_trace(fit_m2, pars = c("b_Intercept", "b_s.length", "b_s.length:LanguageGerman", "b_LanguageGerman"))
+```
+```{r}
+# Plot histograms for Model M1
+mcmc_hist(mfit_m1, pars = c("b_Intercept", "b_s.length"))
+```
+
+```{r}
+# Plot histograms for Model M2
+mcmc_hist(mfit_m2, pars = c("b_Intercept", "b_s.length", "b_s.length:LanguageGerman", "b_LanguageGerman"))
+```
+
